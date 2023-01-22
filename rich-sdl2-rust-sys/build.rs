@@ -89,7 +89,7 @@ fn include_paths(target_os: &str) -> impl Iterator<Item = PathBuf> {
                 .probe("sdl2")
                 .into_iter()
                 .flat_map(|sdl2| sdl2.include_paths)
-                .chain(std::env::var("SDL2_PATH").map(PathBuf::from).into_iter()),
+                .chain(std::env::var("SDL2_INCLUDE_DIR").map(PathBuf::from).into_iter()),
         );
     }
     if cfg!(feature = "ttf") {
@@ -482,7 +482,7 @@ fn set_link(target_os: &str) {
 }
 
 fn set_lib_dir() {
-    if let Ok(lib_dir) = std::env::var("SDL2_LIB_DIR") {
+    if let Ok(lib_dir) = std::env::var("SDL2_LIBDIR") {
         println!("cargo:rustc-link-search={}", lib_dir);
     }
 }
