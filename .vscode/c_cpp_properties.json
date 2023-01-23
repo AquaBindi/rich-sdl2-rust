@@ -4,7 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "C:/Program Files (x86)/SDL2/include/SDL2"
+                "C:/Program Files (x86)/SDL2/include"
             ],
             "defines": [
                 "_DEBUG",
