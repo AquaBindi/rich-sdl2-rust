@@ -1,11 +1,11 @@
 [package]
 name = "rich-sdl2-rust"
 version = "0.11.4"
-authors = ["MikuroXina <ryosukadnak@gmail.com>"]
+authors = ["Toshiharu Moriyama <aqua.bindi@gmail.com>"]
 edition = "2021"
 description = "The sdl2 wrapper for Rust."
-repository = "https://github.com/MikuroXina/rich-sdl2-rust"
-documentation = "https://mikuroxina.github.io/rich-sdl2-rust/rich_sdl2_rust/"
+repository = "https://github.com/AquaBindi/rich-sdl2-rust"
+documentation = "https://aquabindi.github.io/rich-sdl2-rust/rich_sdl2_rust/"
 license = "Apache-2.0"
 keywords = ["sdl2", "wrapper", "binding"]
 categories = ["graphics", "gui", "multimedia", "rendering"]
