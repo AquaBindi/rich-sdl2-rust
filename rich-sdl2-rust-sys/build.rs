@@ -1,6 +1,7 @@
 use std::{
     env,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use git2::Repository;
@@ -89,7 +90,11 @@ fn include_paths(target_os: &str) -> impl Iterator<Item = PathBuf> {
                 .probe("sdl2")
                 .into_iter()
                 .flat_map(|sdl2| sdl2.include_paths)
-                .chain(std::env::var("SDL2_INCLUDE_DIR").map(PathBuf::from).into_iter()),
+                .chain(
+                    std::env::var("SDL2_INCLUDE_DIR")
+                        .map(PathBuf::from)
+                        .into_iter(),
+                ),
         );
     }
     if cfg!(feature = "ttf") {
@@ -139,8 +144,6 @@ fn build_vendor_sdl2(target_os: &str, include_dir: &Path, lib_dir: &Path, root_d
     if repo_path.is_dir() {
         return;
     }
-
-    use std::process::Command;
 
     eprintln!("SDL cloning into: {}", repo_path.display());
     let url = "https://github.com/libsdl-org/SDL";
@@ -238,8 +241,6 @@ fn build_vendor_sdl2_ttf(target_os: &str, include_dir: &Path, lib_dir: &Path, ro
         return;
     }
 
-    use std::process::Command;
-
     eprintln!("SDL_ttf cloning into: {}", repo_path.display());
     let url = "https://github.com/libsdl-org/SDL_ttf";
     let repo = retry(Fixed::from_millis(2000).take(3), || {
@@ -331,8 +332,6 @@ fn build_vendor_sdl2_mixer(target_os: &str, root_dir: &Path) {
     if repo_path.is_dir() {
         return;
     }
-
-    use std::process::Command;
 
     eprintln!("SDL_mixer cloning into: {}", repo_path.display());
     let url = "https://github.com/libsdl-org/SDL_mixer";
