@@ -1,7 +1,7 @@
 use std::{
     env,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, ExitStatus}, io::Error,
 };
 
 use git2::Repository;
@@ -157,49 +157,7 @@ fn build_vendor_sdl2(target_os: &str, include_dir: &Path, lib_dir: &Path, root_d
     checkout_to_tag(&repo, SDL_VERSION);
 
     if target_os.contains("windows") {
-        let target_platform = if cfg!(target_pointer_width = "64") {
-            "Platform=x64"
-        } else {
-            r#"Platform="Any CPU""#
-        };
-        assert!(
-            Command::new("msbuild")
-                .arg(format!("/p:Configuration=Debug,{}", target_platform))
-                .arg(repo_path.join("VisualC").join("SDL.sln"))
-                .status()
-                .expect("failed to build project")
-                .success(),
-            "build failed"
-        );
-        let include_install_dir = include_dir.join("SDL2");
-        std::fs::create_dir_all(&include_install_dir).expect("failed to create lib dir");
-        for file in std::fs::read_dir(repo_path.join("include"))
-            .expect("headers not found in repo")
-            .flatten()
-        {
-            let path = file.path();
-            if path.is_file() && path.extension() == Some(std::ffi::OsStr::new("h")) {
-                std::fs::copy(&path, include_install_dir.join(path.file_name().unwrap()))
-                    .expect("failed to copy header file");
-            }
-        }
-        let project_to_use = if cfg!(target_pointer_width = "64") {
-            "x64"
-        } else {
-            "Win32"
-        };
-        std::fs::create_dir_all(lib_dir).expect("failed to create lib dir");
-        for file in std::fs::read_dir(repo_path.join("VisualC").join(project_to_use).join("Debug"))
-            .expect("build dir not found")
-            .flatten()
-        {
-            let path = file.path();
-            if path.is_file() {
-                eprintln!("built library: {}", path.display());
-                std::fs::copy(&path, lib_dir.join(path.file_name().unwrap()))
-                    .expect("failed to copy built library");
-            }
-        }
+        build_windows(&include_dir, &lib_dir, &root_dir, &repo_path);
     } else {
         let build_path = repo_path.join("build");
         std::fs::create_dir(&build_path).expect("failed to mkdir build");
