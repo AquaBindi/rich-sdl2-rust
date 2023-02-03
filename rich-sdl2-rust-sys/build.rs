@@ -300,6 +300,74 @@ fn build_vendor_sdl2(target_os: &str, include_dir: &Path, lib_dir: &Path, root_d
     }
 }
 
+fn msbuild_sdl2_ttf(include_dir: &Path, lib_dir: &Path, repo_path: &Path) -> bool {
+    let target_platform = if cfg!(target_pointer_width = "64") {
+        "Platform=x64"
+    } else {
+        r#"Platform="Any CPU""#
+    };
+
+    let status = Command::new("msbuild")
+        .arg(format!("/p:Configuration=Debug,{}", target_platform))
+        .arg(repo_path.join("VisualC").join("SDL_ttf.sln"))
+        .status();
+
+    match status {
+        Ok(_) => eprintln!("success msbuild of SDL2 TTF"),
+        Err(_) => {
+            eprintln!("failed msbuild of SDL2 TTF");
+            return false;
+        }
+    }
+
+    let include_install_dir = include_dir.join("SDL2");
+    std::fs::create_dir_all(&include_install_dir).expect("failed to create lib dir");
+    std::fs::copy(
+        repo_path.join("SDL_ttf.h"),
+        include_install_dir.join("SDL_ttf.h"),
+    )
+    .expect("failed to copy header file");
+
+    let project_to_use = if cfg!(target_pointer_width = "64") {
+        "x64"
+    } else {
+        "Win32"
+    };
+    std::fs::create_dir_all(lib_dir).expect("failed to create lib dir");
+    for file in std::fs::read_dir(repo_path.join("VisualC").join(project_to_use).join("Debug"))
+        .expect("build dir not found")
+        .flatten()
+    {
+        let path = file.path();
+        if path.is_file() {
+            eprintln!("built library: {}", path.display());
+            std::fs::copy(&path, lib_dir.join(path.file_name().unwrap()))
+                .expect("failed to copy built library");
+        }
+    }
+
+    true
+}
+
+fn build_sdl2_ttf_windows(include_dir: &Path, lib_dir: &Path, root_dir: &Path, repo_path: &Path) {
+    if !msbuild_sdl2_ttf(include_dir, lib_dir, repo_path) {
+        match cmake_configure(root_dir, &repo_path) {
+            Ok(_) => {
+                match cmake_build(repo_path) {
+                    Ok(_) => {
+                        match cmake_install(repo_path) {
+                            Ok(_) => {},
+                            Err(_) => eprintln!("failed")
+                        };
+                    },
+                    Err(_) => eprintln!("failed")
+                };
+            },
+            Err(_) => eprintln!("failed")
+        };
+    }
+}
+
 fn build_vendor_sdl2_ttf(target_os: &str, include_dir: &Path, lib_dir: &Path, root_dir: &Path) {
     let repo_path = root_dir.join("SDL_ttf");
     if repo_path.is_dir() {
@@ -318,45 +386,7 @@ fn build_vendor_sdl2_ttf(target_os: &str, include_dir: &Path, lib_dir: &Path, ro
     checkout_to_tag(&repo, SDL_TTF_VERSION);
 
     if target_os.contains("windows") {
-        let target_platform = if cfg!(target_pointer_width = "64") {
-            "Platform=x64"
-        } else {
-            r#"Platform="Any CPU""#
-        };
-        assert!(
-            Command::new("msbuild")
-                .arg(format!("/p:Configuration=Debug,{}", target_platform))
-                .arg(repo_path.join("VisualC").join("SDL_ttf.sln"))
-                .status()
-                .expect("failed to build project")
-                .success(),
-            "build failed"
-        );
-        let include_install_dir = include_dir.join("SDL2");
-        std::fs::create_dir_all(&include_install_dir).expect("failed to create lib dir");
-        std::fs::copy(
-            repo_path.join("SDL_ttf.h"),
-            include_install_dir.join("SDL_ttf.h"),
-        )
-        .expect("failed to copy header file");
-
-        let project_to_use = if cfg!(target_pointer_width = "64") {
-            "x64"
-        } else {
-            "Win32"
-        };
-        std::fs::create_dir_all(lib_dir).expect("failed to create lib dir");
-        for file in std::fs::read_dir(repo_path.join("VisualC").join(project_to_use).join("Debug"))
-            .expect("build dir not found")
-            .flatten()
-        {
-            let path = file.path();
-            if path.is_file() {
-                eprintln!("built library: {}", path.display());
-                std::fs::copy(&path, lib_dir.join(path.file_name().unwrap()))
-                    .expect("failed to copy built library");
-            }
-        }
+        build_sdl2_ttf_windows(include_dir, lib_dir, root_dir, &repo_path);
     } else {
         let build_path = repo_path.join("build");
         std::fs::create_dir(&build_path).expect("failed to mkdir build");
