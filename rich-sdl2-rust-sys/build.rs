@@ -285,6 +285,40 @@ fn build_vendor_sdl2_ttf(target_os: &str, include_dir: &Path, lib_dir: &Path, ro
     }
 }
 
+fn install_sdl2_mixer_windows(root_dir: &Path, repo_path: &Path) {
+    std::fs::rename(
+        repo_path.join("build").join("Debug").join("SDL2_mixerd.dll"),
+        root_dir.join("lib").join("SDL2_mixer.dll"),
+    )
+    .expect("failed to move dll");
+
+    std::fs::rename(
+        repo_path.join("build").join("Debug").join("SDL2_mixerd.lib"),
+        root_dir.join("lib").join("SDL2_mixer.lib"),
+    )
+    .expect("failed to move lib");
+
+    std::fs::copy(
+        repo_path.join("include").join("SDL_mixer.h"),
+        root_dir.join("include").join("SDL2").join("SDL_mixer.h"),
+    )
+    .expect("failed to copy header");
+}
+
+fn cmake_sdl2_mixer_windows(root_dir: &Path, repo_path: &Path) {
+    match cmake_configure(root_dir, repo_path) {
+        Ok(_) => {
+            match cmake_build(repo_path) {
+                Ok(_) => {
+                    install_sdl2_mixer_windows(root_dir, repo_path);
+                },
+                Err(_) => eprint!("failed build")
+            };
+        },
+        Err(_) => eprintln!("failed configure")
+    };
+}
+
 fn build_vendor_sdl2_mixer(target_os: &str, root_dir: &Path) {
     let repo_path = root_dir.join("SDL_mixer");
     if repo_path.is_dir() {
@@ -308,44 +342,7 @@ fn build_vendor_sdl2_mixer(target_os: &str, root_dir: &Path) {
     }
 
     if target_os.contains("windows") {
-        let build_path = repo_path.join("build");
-        std::fs::create_dir(&build_path).expect("failed to mkdir build");
-        assert!(
-            Command::new("cmake")
-                .current_dir(&build_path)
-                .args([
-                    format!("-DCMAKE_INSTALL_PREFIX={}", root_dir.display()),
-                    "..".into(),
-                ])
-                .status()
-                .expect("failed to configure SDL_mixer")
-                .success(),
-            "cmake failed"
-        );
-        assert!(
-            Command::new("cmake")
-                .current_dir(&build_path)
-                .args(["--build", "."])
-                .status()
-                .expect("failed to build SDL_mixer")
-                .success(),
-            "build failed"
-        );
-        std::fs::rename(
-            build_path.join("Debug").join("SDL2_mixerd.dll"),
-            root_dir.join("lib").join("SDL2_mixer.dll"),
-        )
-        .expect("failed to move dll");
-        std::fs::rename(
-            build_path.join("Debug").join("SDL2_mixerd.lib"),
-            root_dir.join("lib").join("SDL2_mixer.lib"),
-        )
-        .expect("failed to move lib");
-        std::fs::copy(
-            repo_path.join("include").join("SDL_mixer.h"),
-            root_dir.join("include").join("SDL2").join("SDL_mixer.h"),
-        )
-        .expect("failed to copy header");
+        cmake_sdl2_mixer_windows(&root_dir, &repo_path);
     } else {
         assert!(
             Command::new(repo_path.join("configure"))
