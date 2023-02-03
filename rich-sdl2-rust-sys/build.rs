@@ -380,6 +380,113 @@ fn build_vendor_sdl2_mixer(target_os: &str, root_dir: &Path) {
     }
 }
 
+fn cmake_configure(root_dir: &Path, repo_path: &Path) -> Result<ExitStatus, Error> {
+    let params = [
+        "-B",
+        "build",
+        &format!("-DCMAKE_BUILD_TYPE=Debug"),
+        &format!("-DCMAKE_INSTALL_PREFIX={}", root_dir.display()),
+    ];
+
+    let status = Command::new("cmake")
+        .current_dir(&repo_path)
+        .args(&params)
+        .status();
+
+    status
+}
+
+fn cmake_build(repo_path: &Path) -> Result<ExitStatus, Error>  {
+    let status = Command::new("cmake")
+        .current_dir(&repo_path)
+        .args(["--build", "build"])
+        .status();
+        //.expect("failed to build SDL");
+
+    status
+}
+
+fn cmake_install(repo_path: &Path) -> Result<ExitStatus, Error> {
+    let status = Command::new("cmake")
+        .current_dir(&repo_path)
+        .args(["--install", "build", "--config", "Debug"])
+        .status();
+        //.expect("failed to install SDL");
+
+    status
+}
+
+fn msbuild_sdl2(include_dir: &Path, lib_dir: &Path, repo_path: &Path) -> bool {
+    let target_platform = if cfg!(target_pointer_width = "64") {
+        "Platform=x64"
+    } else {
+        r#"Platform="Any CPU""#
+    };
+    let status = Command::new("msbuild")
+        .arg(format!("/p:Configuration=Debug,{}", target_platform))
+        .arg(repo_path.join("VisualC").join("SDL.sln"))
+        .status();
+
+    match status {
+        Ok(_) => eprintln!("success build. msbuild"),
+        Err(_) => {
+            eprintln!("failed build. msbuild");
+            return false;
+        }
+    }
+
+    let include_install_dir = include_dir.join("SDL2");
+    std::fs::create_dir_all(&include_install_dir).expect("failed to create lib dir");
+    for file in std::fs::read_dir(repo_path.join("include"))
+        .expect("headers not found in repo")
+        .flatten()
+    {
+        let path = file.path();
+        if path.is_file() && path.extension() == Some(std::ffi::OsStr::new("h")) {
+            std::fs::copy(&path, include_install_dir.join(path.file_name().unwrap()))
+                .expect("failed to copy header file");
+        }
+    }
+    let project_to_use = if cfg!(target_pointer_width = "64") {
+        "x64"
+    } else {
+        "Win32"
+    };
+    std::fs::create_dir_all(lib_dir).expect("failed to create lib dir");
+    for file in std::fs::read_dir(repo_path.join("VisualC").join(project_to_use).join("Debug"))
+        .expect("build dir not found")
+        .flatten()
+    {
+        let path = file.path();
+        if path.is_file() {
+            eprintln!("built library: {}", path.display());
+            std::fs::copy(&path, lib_dir.join(path.file_name().unwrap()))
+                .expect("failed to copy built library");
+        }
+    }
+
+    true
+}
+
+fn build_windows(include_dir: &Path, lib_dir: &Path, root_dir: &Path, repo_path: &Path) {
+    if !msbuild_sdl2(&include_dir, &lib_dir, &repo_path) {
+        match cmake_configure(&root_dir, &repo_path) {
+            Ok(_) => {
+                match cmake_build(&repo_path) {
+                    Ok(_) => {
+                        match cmake_install(&repo_path) {
+                            Ok(_) => {},
+                            Err(_) => eprint!("failed")
+                        };
+                    },
+                    Err(_) => eprint!("failed")
+                };
+            },
+            Err(_) => eprintln!("failed")
+        };
+    }
+}
+
 fn checkout_to_tag(repo: &Repository, tag: &str) {
     let (obj, reference) = repo
         .revparse_ext(&format!("release-{}", tag))
