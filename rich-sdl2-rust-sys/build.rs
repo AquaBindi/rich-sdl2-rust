@@ -157,7 +157,7 @@ fn build_vendor_sdl2(target_os: &str, include_dir: &Path, lib_dir: &Path, root_d
     checkout_to_tag(&repo, SDL_VERSION);
 
     if target_os.contains("windows") {
-        build_windows(&include_dir, &lib_dir, &root_dir, &repo_path);
+        build_sdl2_windows(&include_dir, &lib_dir, &root_dir, &repo_path);
     } else {
         let build_path = repo_path.join("build");
         std::fs::create_dir(&build_path).expect("failed to mkdir build");
@@ -465,7 +465,7 @@ fn msbuild_sdl2(include_dir: &Path, lib_dir: &Path, repo_path: &Path) -> bool {
     true
 }
 
-fn build_windows(include_dir: &Path, lib_dir: &Path, root_dir: &Path, repo_path: &Path) {
+fn build_sdl2_windows(include_dir: &Path, lib_dir: &Path, root_dir: &Path, repo_path: &Path) {
     if !msbuild_sdl2(&include_dir, &lib_dir, &repo_path) {
         match cmake_configure(&root_dir, &repo_path) {
             Ok(_) => {
