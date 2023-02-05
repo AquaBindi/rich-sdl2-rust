@@ -4,6 +4,7 @@ use crate::bind;
 
 /// A layout for a packed pixel format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum PackedPixelLayout {
     /// A layout is in 8 bits with 4 components, as below:
     ///
@@ -56,6 +57,7 @@ pub enum PackedPixelLayout {
 }
 
 impl PackedPixelLayout {
+    #[allow(clippy::unnecessary_cast)]
     pub(super) fn as_raw(self) -> u32 {
         (match self {
             PackedPixelLayout::_332 => bind::SDL_PACKEDLAYOUT_332,

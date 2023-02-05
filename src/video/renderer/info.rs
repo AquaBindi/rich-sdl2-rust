@@ -11,6 +11,7 @@ use super::Renderer;
 
 /// A kind of renderer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum RendererKind {
     /// Software renderer, normally slow.
     Software,
@@ -36,6 +37,7 @@ pub struct RendererInfo {
 }
 
 impl From<bind::SDL_RendererInfo> for RendererInfo {
+    #[allow(clippy::unnecessary_cast)]
     fn from(info: bind::SDL_RendererInfo) -> Self {
         let kind = if info.flags & bind::SDL_RENDERER_SOFTWARE as u32 == 0 {
             RendererKind::Accelerated

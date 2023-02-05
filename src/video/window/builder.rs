@@ -1,3 +1,5 @@
+#![allow(clippy::unnecessary_cast)]
+
 use bitflags::bitflags;
 use std::ffi::CString;
 use std::ptr::NonNull;
@@ -124,6 +126,9 @@ impl WindowBuilder {
         }
         if self.borderless {
             flags |= WindowFlags::BORDERLESS;
+        }
+        if self.resizable {
+            flags |= WindowFlags::RESIZABLE;
         }
         flags.bits()
     }

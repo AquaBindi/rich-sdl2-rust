@@ -12,6 +12,7 @@ use super::{
 
 /// A kind of pixel format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum PixelFormatKind {
     /// A format not supported by SDL2.
     Unknown,
@@ -163,7 +164,7 @@ impl PixelFormatKind {
     }
 
     pub(crate) fn as_raw(self) -> u32 {
-        (match self {
+        match self {
             PixelFormatKind::Unknown => 0,
             PixelFormatKind::Bitmap { ty, order } => calc_bits(
                 ty.as_raw(),
@@ -184,7 +185,7 @@ impl PixelFormatKind {
                 calc_bits(ty.as_raw(), order.as_raw(), 0, bits, bits / 8)
             }
             PixelFormatKind::FourCode(bytes) => u32::from_le_bytes(bytes),
-        }) as u32
+        }
     }
 }
 
